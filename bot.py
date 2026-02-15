@@ -10,6 +10,7 @@ from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaAudio
 from dotenv import load_dotenv
+from tiktokdl.download_post import get_post
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -17,12 +18,16 @@ logging.basicConfig(level=logging.INFO)
 # Load environment variables from .env file
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+SECRET_KEY = os.getenv("SECRET_KEY")
+COMMON_KEY = os.getenv("COMMON_KEY")
 TEMP_DIRECTORY = os.path.join(os.path.dirname(__file__), 'temp_videos')
 os.makedirs(TEMP_DIRECTORY, exist_ok=True)
 
-# --- Whitelist Configuration ---
+# --- Whitelist and Admin Configuration ---
 WHITELIST_FILE = os.path.join(os.path.dirname(__file__), 'whitelist.txt')
+ADMINS_FILE = os.path.join(os.path.dirname(__file__), 'admins.txt')
 WHITELISTED_CHAT_IDS = []
+ADMIN_IDS = []
 
 def load_whitelist():
     """Loads whitelisted chat IDs from the file."""
@@ -32,19 +37,66 @@ def load_whitelist():
             with open(WHITELIST_FILE, 'r') as f:
                 content = f.read().strip()
                 if content:
-                    # Split by comma and convert to integers
                     WHITELISTED_CHAT_IDS = [int(chat_id.strip()) for chat_id in content.split(',')]
                     logging.info(f"Whitelist loaded: {WHITELISTED_CHAT_IDS}")
                 else:
                     logging.warning("Whitelist file is empty.")
         else:
-            logging.warning("whitelist.txt not found. No one will be able to use the bot.")
+            logging.warning("whitelist.txt not found.")
     except Exception as e:
         logging.error(f"Error loading whitelist: {e}")
 
-# Load the whitelist on startup
+def load_admins():
+    """Loads admin IDs from the file."""
+    global ADMIN_IDS
+    try:
+        if os.path.exists(ADMINS_FILE):
+            with open(ADMINS_FILE, 'r') as f:
+                content = f.read().strip()
+                if content:
+                    ADMIN_IDS = [int(admin_id.strip()) for admin_id in content.split(',')]
+                    logging.info(f"Admins loaded: {ADMIN_IDS}")
+                else:
+                    logging.warning("Admins file is empty.")
+        else:
+            logging.warning("admins.txt not found.")
+    except Exception as e:
+        logging.error(f"Error loading admins: {e}")
+
+def save_whitelist():
+    """Saves whitelisted chat IDs to the file."""
+    try:
+        with open(WHITELIST_FILE, 'w') as f:
+            f.write(','.join(map(str, WHITELISTED_CHAT_IDS)))
+        logging.info(f"Whitelist saved: {WHITELISTED_CHAT_IDS}")
+    except Exception as e:
+        logging.error(f"Error saving whitelist: {e}")
+
+def save_admins():
+    """Saves admin IDs to the file."""
+    try:
+        with open(ADMINS_FILE, 'w') as f:
+            f.write(','.join(map(str, ADMIN_IDS)))
+        logging.info(f"Admins saved: {ADMIN_IDS}")
+    except Exception as e:
+        logging.error(f"Error saving admins: {e}")
+
+def add_to_whitelist(user_id: int):
+    """Adds a user to the whitelist."""
+    if user_id not in WHITELISTED_CHAT_IDS:
+        WHITELISTED_CHAT_IDS.append(user_id)
+        save_whitelist()
+
+def add_to_admins(user_id: int):
+    """Adds a user to admins."""
+    if user_id not in ADMIN_IDS:
+        ADMIN_IDS.append(user_id)
+        save_admins()
+
+# Load the whitelist and admins on startup
 load_whitelist()
-# --- End of Whitelist Configuration ---
+load_admins()
+# --- End of Whitelist and Admin Configuration ---
 
 
 # Initialize bot and dispatcher
@@ -54,8 +106,12 @@ dp = Dispatcher()
 # Middleware to check for whitelist
 @dp.message.middleware()
 async def whitelist_middleware(handler, event: types.Message, data: dict):
+    # Skip whitelist check for /auth command
+    if event.text and event.text.startswith('/auth'):
+        return await handler(event, data)
+    
     if event.chat.id not in WHITELISTED_CHAT_IDS:
-        await event.reply(f"Your Chat ID is: {event.chat.id} ask admin or deploy by yourself https://github.com/radimbig/telegram-media-download-bot")
+        await event.reply(f"Your Chat ID is: {event.chat.id}\nUse /auth [key] to authenticate or ask admin.\nGitHub: https://github.com/radimbig/telegram-media-download-bot")
         return
     return await handler(event, data)
 
@@ -121,100 +177,33 @@ async def download_video(message: types.Message, bot: Bot, platform_name: str):
 
 async def download_tiktok_slideshow(message: types.Message, bot: Bot):
     """
-    Downloads TikTok slideshow (images + audio) using TikWM API.
+    Downloads TikTok slideshow (images + audio) using tiktok-dlpy.
     """
     progress_msg = await message.reply(f"⏳ Processing TikTok slideshow...")
     temp_files = []
     try:
-        request_id = str(uuid.uuid4())[:8]
-        base_filename = f"tiktok_{message.from_user.id}_{request_id}"
+        # Use tiktok-dlpy to download the slideshow
+        result = await get_post(message.text)
 
-        # Use TikWM API to get slideshow data
-        def fetch_tiktok_data():
-            try:
-                api_url = "https://www.tikwm.com/api/"
-                response = requests.post(api_url, data={'url': message.text}, timeout=30)
-                if response.status_code == 200:
-                    return response.json()
-            except Exception as e:
-                logging.error(f"Error fetching from TikWM API: {e}")
-            return None
-
-        loop = asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, fetch_tiktok_data)
-
-        if not data or data.get('code') != 0:
-            await progress_msg.edit_text("❌ Failed to fetch slideshow data. Trying alternative method...")
-            # Fallback to regular download
+        if not result:
+            await progress_msg.edit_text("❌ Failed to download slideshow. Trying as video...")
             await download_video(message, bot, "TikTok")
             return
 
-        tiktok_data = data.get('data', {})
+        # get_post returns a dictionary with downloaded file paths
+        # Expected structure: {'images': [path1, path2, ...], 'audio': path}
+        images = result.get('images', [])
+        audio_path = result.get('audio')
 
-        # Get images
-        image_urls = tiktok_data.get('images', [])
+        # Add all downloaded files to temp_files for cleanup
+        if images:
+            temp_files.extend(images)
+        if audio_path:
+            temp_files.append(audio_path)
 
-        # Get audio/music
-        music_url = tiktok_data.get('music') or tiktok_data.get('music_info', {}).get('play')
-
-        if not image_urls:
-            await progress_msg.edit_text("❌ No images found in slideshow. Trying as video...")
-            await download_video(message, bot, "TikTok")
-            return
-
-        # Download images
-        images = []
-        await progress_msg.edit_text(f"⏳ Downloading {len(image_urls)} images...")
-
-        def download_image(url, index):
-            try:
-                response = requests.get(url, timeout=30)
-                if response.status_code == 200:
-                    ext = '.jpg'
-                    content_type = response.headers.get('content-type', '')
-                    if 'png' in content_type:
-                        ext = '.png'
-                    elif 'webp' in content_type:
-                        ext = '.webp'
-
-                    img_path = os.path.join(TEMP_DIRECTORY, f"{base_filename}_img_{index}{ext}")
-                    with open(img_path, 'wb') as f:
-                        f.write(response.content)
-                    return img_path
-            except Exception as e:
-                logging.error(f"Error downloading image {index}: {e}")
-            return None
-
-        for idx, url in enumerate(image_urls):
-            img_path = await loop.run_in_executor(None, download_image, url, idx)
-            if img_path:
-                images.append(img_path)
-                temp_files.append(img_path)
-
-        # Download audio
-        audio_path = None
-        if music_url:
-            await progress_msg.edit_text("⏳ Downloading audio...")
-
-            def download_audio(url):
-                try:
-                    response = requests.get(url, timeout=30)
-                    if response.status_code == 200:
-                        audio_path = os.path.join(TEMP_DIRECTORY, f"{base_filename}_audio.mp3")
-                        with open(audio_path, 'wb') as f:
-                            f.write(response.content)
-                        return audio_path
-                except Exception as e:
-                    logging.error(f"Error downloading audio: {e}")
-                return None
-
-            audio_path = await loop.run_in_executor(None, download_audio, music_url)
-            if audio_path:
-                temp_files.append(audio_path)
-
-        # Send content
         if not images:
-            await progress_msg.edit_text("❌ Failed to download images.")
+            await progress_msg.edit_text("❌ No images found. Trying as video...")
+            await download_video(message, bot, "TikTok")
             return
 
         await progress_msg.edit_text("✅ Download complete! Sending slideshow...")
@@ -236,10 +225,15 @@ async def download_tiktok_slideshow(message: types.Message, bot: Bot):
     except Exception as e:
         logging.error(f"Error processing TikTok slideshow: {e}")
         await progress_msg.edit_text(f"❌ An error occurred: {e}")
+        # Try fallback to regular video download
+        try:
+            await download_video(message, bot, "TikTok")
+        except:
+            pass
     finally:
         # Clean up all temp files
         for file_path in temp_files:
-            if os.path.exists(file_path):
+            if file_path and os.path.exists(file_path):
                 try:
                     os.remove(file_path)
                 except Exception as e:
@@ -250,33 +244,12 @@ async def check_tiktok_content_type(url: str) -> str:
     Checks if TikTok URL is a video or slideshow.
     Returns: 'slideshow' or 'video'
     """
-    # Simple check: if URL contains '/photo/', it's a slideshow
+    # If URL contains '/photo/', it's a slideshow
     if '/photo/' in url:
         return 'slideshow'
 
-    # Try to fetch data from TikWM API to determine type
-    try:
-        def fetch_data():
-            try:
-                api_url = "https://www.tikwm.com/api/"
-                response = requests.post(api_url, data={'url': url}, timeout=10)
-                if response.status_code == 200:
-                    data = response.json()
-                    if data.get('code') == 0:
-                        tiktok_data = data.get('data', {})
-                        # If images field exists and has items, it's a slideshow
-                        if tiktok_data.get('images'):
-                            return 'slideshow'
-            except:
-                pass
-            return 'video'
-
-        loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(None, fetch_data)
-
-    except Exception as e:
-        logging.error(f"Error checking TikTok content type: {e}")
-        return 'video'
+    # Otherwise it's a regular video
+    return 'video'
 
 async def handle_tiktok(message: types.Message, bot: Bot):
     """
@@ -305,6 +278,91 @@ async def send_welcome(message: types.Message):
 @dp.message(Command(commands=["status"]))
 async def send_status(message: types.Message):
     await message.reply("I am alive")
+
+# Handler for /auth command
+@dp.message(Command(commands=["auth"]))
+async def auth_user(message: types.Message):
+    try:
+        # Parse command: /auth [key]
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("❌ Usage: /auth [key]")
+            return
+        
+        key = parts[1].strip()
+        user_id = message.from_user.id
+        
+        if key == SECRET_KEY:
+            # Add to both admins and whitelist
+            add_to_admins(user_id)
+            add_to_whitelist(user_id)
+            await message.reply("✅ You have been authenticated as ADMIN!")
+        elif key == COMMON_KEY:
+            # Add only to whitelist
+            add_to_whitelist(user_id)
+            await message.reply("✅ You have been authenticated as USER!")
+        else:
+            await message.reply("❌ Invalid authentication key.")
+    except Exception as e:
+        logging.error(f"Error in auth command: {e}")
+        await message.reply(f"❌ An error occurred: {e}")
+
+# Handler for /add-admin command (only for admins)
+@dp.message(Command(commands=["add-admin"]))
+async def add_admin_command(message: types.Message):
+    try:
+        # Check if user is admin
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ This command is only for admins.")
+            return
+        
+        # Parse command: /add-admin [user_id]
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("❌ Usage: /add-admin [user_id]")
+            return
+        
+        try:
+            new_admin_id = int(parts[1].strip())
+        except ValueError:
+            await message.reply("❌ Invalid user ID. Please provide a numeric user ID.")
+            return
+        
+        # Add to both admins and whitelist
+        add_to_admins(new_admin_id)
+        add_to_whitelist(new_admin_id)
+        await message.reply(f"✅ User {new_admin_id} has been added as ADMIN!")
+    except Exception as e:
+        logging.error(f"Error in add-admin command: {e}")
+        await message.reply(f"❌ An error occurred: {e}")
+
+# Handler for /add-user command (only for admins)
+@dp.message(Command(commands=["add-user"]))
+async def add_user_command(message: types.Message):
+    try:
+        # Check if user is admin
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ This command is only for admins.")
+            return
+        
+        # Parse command: /add-user [user_id]
+        parts = message.text.split(maxsplit=1)
+        if len(parts) < 2:
+            await message.reply("❌ Usage: /add-user [user_id]")
+            return
+        
+        try:
+            new_user_id = int(parts[1].strip())
+        except ValueError:
+            await message.reply("❌ Invalid user ID. Please provide a numeric user ID.")
+            return
+        
+        # Add only to whitelist
+        add_to_whitelist(new_user_id)
+        await message.reply(f"✅ User {new_user_id} has been added to whitelist!")
+    except Exception as e:
+        logging.error(f"Error in add-user command: {e}")
+        await message.reply(f"❌ An error occurred: {e}")
 
 # Handler for messages containing links
 @dp.message()

@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pip show:*)",
+      "Bash(pip install:*)",
+      "Bash(timeout 3 py:*)",
+      "Bash(exit 0)",
+      "Bash(py --list:*)",
+      "Bash(py --version)",
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(yt-dlp:*)"
+    ]
+  }
+}
