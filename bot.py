@@ -275,6 +275,30 @@ async def handle_youtube(message: types.Message, bot: Bot):
 async def send_welcome(message: types.Message):
     await message.reply("Hello! I am bot radym. Send me a link to download a video.")
 
+# Handler for /help command
+@dp.message(Command(commands=["help"]))
+async def send_help(message: types.Message):
+    help_text = (
+        "📖 *Available Commands*\n\n"
+        "*/start* — Welcome message\n"
+        "*/help* — Show this help message\n"
+        "*/status* — Check if the bot is running\n"
+        "*/auth \\[key\\]* — Authenticate yourself with a key to gain access\\.\n"
+        "  • Use the *admin key* to get admin privileges\\.\n"
+        "  • Use the *user key* to get standard access\\.\n\n"
+        "🔐 *Admin\\-only Commands*\n\n"
+        "*/add\\-admin \\[user\\_id\\]* — Grant admin rights to a user by their Telegram user ID\n"
+        "*/add\\-user \\[user\\_id\\]* — Add a user to the whitelist by their Telegram user ID\n\n"
+        "🎬 *Downloading Media*\n\n"
+        "Simply send a link from one of the supported platforms and the bot will download and send the media to you:\n"
+        "• *TikTok* — videos and photo slideshows \\(with audio\\)\n"
+        "• *Instagram* — videos\n"
+        "• *YouTube* — videos \\(up to 1080p\\)\n"
+        "• *Facebook* — videos\n\n"
+        "ℹ️ If you are not authenticated, send any message to get your Chat ID, then use */auth \\[key\\]* to gain access\\."
+    )
+    await message.reply(help_text, parse_mode="MarkdownV2")
+
 # Handler for /status command
 @dp.message(Command(commands=["status"]))
 async def send_status(message: types.Message):
