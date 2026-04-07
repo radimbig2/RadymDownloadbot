@@ -407,10 +407,10 @@ async def list_users_command(message: types.Message):
 
         admin_ids_set = set(ADMIN_IDS)
         whitelist_ids = set(WHITELISTED_CHAT_IDS)
-        regular_user_ids = sorted(user_id for user_id in whitelist_ids if user_id not in admin_ids_set)
+        regular_user_ids = [user_id for user_id in whitelist_ids if user_id not in admin_ids_set]
         response_text = (
             "👥 Access list\n\n"
-            f"{format_id_section('Admins', sorted(admin_ids_set))}\n\n"
+            f"{format_id_section('Admins', list(admin_ids_set))}\n\n"
             f"{format_id_section('Whitelisted users', regular_user_ids)}"
         )
         await message.reply(response_text)
