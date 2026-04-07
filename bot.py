@@ -367,7 +367,7 @@ async def add_admin_command(message: types.Message):
         await message.reply(f"✅ User {new_admin_id} has been added as ADMIN!")
     except Exception as e:
         logging.error(f"Error in add-admin command: {e}")
-        await message.reply(f"❌ An error occurred: {e}")
+        await message.reply("❌ An internal error occurred while adding the admin.")
 
 # Handler for /add-user command (only for admins)
 @dp.message(Command(commands=["add-user"]))
@@ -395,7 +395,7 @@ async def add_user_command(message: types.Message):
         await message.reply(f"✅ User {new_user_id} has been added to whitelist!")
     except Exception as e:
         logging.error(f"Error in add-user command: {e}")
-        await message.reply(f"❌ An error occurred: {e}")
+        await message.reply("❌ An internal error occurred while adding the user.")
 
 # Handler for /list command (only for admins)
 @dp.message(Command(commands=["list"]))
@@ -416,7 +416,7 @@ async def list_users_command(message: types.Message):
         await message.reply(response_text)
     except Exception as e:
         logging.error(f"Error in list command: {e}")
-        await message.reply(f"❌ An error occurred: {e}")
+        await message.reply("❌ An internal error occurred while loading the access list.")
 
 # Handler for messages containing links
 @dp.message()
