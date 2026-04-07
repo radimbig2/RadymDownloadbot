@@ -17,6 +17,9 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 - 🚀 **Easy to Use**: Just send a link, and the bot does the rest.
 - ⚙️ **Easy to Deploy**: A few simple steps to get your bot up and running.
 
+##TODO
+-Add current group chat command if you are admin
+
 ### 🛠️ Local Installation and Setup
 
 1. **Clone the repository:**
