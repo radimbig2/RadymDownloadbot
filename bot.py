@@ -405,14 +405,13 @@ async def list_users_command(message: types.Message):
             await message.reply("❌ This command is only for admins.")
             return
 
-        admin_ids = sorted(set(ADMIN_IDS))
-        admin_ids_set = set(admin_ids)
+        admin_ids_set = set(ADMIN_IDS)
         whitelist_ids = sorted(set(WHITELISTED_CHAT_IDS))
-        user_ids = [user_id for user_id in whitelist_ids if user_id not in admin_ids_set]
+        regular_user_ids = [user_id for user_id in whitelist_ids if user_id not in admin_ids_set]
         response_text = (
             "👥 Access list\n\n"
-            f"{format_id_section('Admins', admin_ids)}\n\n"
-            f"{format_id_section('Whitelisted users', user_ids)}"
+            f"{format_id_section('Admins', sorted(admin_ids_set))}\n\n"
+            f"{format_id_section('Whitelisted users', regular_user_ids)}"
         )
         await message.reply(response_text)
     except Exception as e:
