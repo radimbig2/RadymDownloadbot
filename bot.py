@@ -295,7 +295,7 @@ async def send_help(message: types.Message):
         "  • Use the *user key* to get standard access\\.\n\n"
         "🔐 *Admin\\-only Commands*\n\n"
         "*/add\\-admin \\[user\\_id\\]* — Grant admin rights to a user by their Telegram user ID\n"
-        "*/add\\-user \\[user\\_id\\]* — Add a user to the whitelist by their Telegram user ID\n\n"
+        "*/add\\-user \\[user\\_id\\]* — Add a user to the whitelist by their Telegram user ID\n"
         "*/list* — Show all admins and whitelisted users\n\n"
         "🎬 *Downloading Media*\n\n"
         "Simply send a link from one of the supported platforms and the bot will download and send the media to you:\n"

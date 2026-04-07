@@ -2,4 +2,4 @@
 whitelist.txt
 admins.txt
 __pycache__/
-*.pyc
+*.py[cod]
