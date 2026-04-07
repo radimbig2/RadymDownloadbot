@@ -49,10 +49,14 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Create the `.env` file:**
     - Create a file named `.env` in the root of the project.
-    - Add your bot token to it:
+    - Add your bot token and authentication keys to it:
         ```
         BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
+        SECRET_KEY=YOUR_ADMIN_SECRET_KEY
+        COMMON_KEY=YOUR_USER_SECRET_KEY
         ```
+    - `SECRET_KEY` — the key that grants **admin** access when used with `/auth`.
+    - `COMMON_KEY` — the key that grants regular **user** access when used with `/auth`.
 
 6. **Set up the whitelist:**
     - Create a file named `whitelist.txt` in the root of the project.
@@ -77,6 +81,18 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 3. **Get the video:**
     - The bot will process the link, download the video, and send it to you in the chat.
+
+### 🔑 Commands
+
+| Command | Access | Description |
+|---------|--------|-------------|
+| `/start` | Everyone | Start the bot and receive a welcome message. |
+| `/status` | Whitelisted users | Check if the bot is running. |
+| `/auth [key]` | Everyone | Authenticate yourself. Use `SECRET_KEY` to become an **admin**, or `COMMON_KEY` to become a regular **user**. Example: `/auth mysecretkey` |
+| `/add-user [user_id]` | Admins only | Add a user to the whitelist by their Telegram Chat ID. Example: `/add-user 123456789` |
+| `/add-admin [user_id]` | Admins only | Promote a user to admin by their Telegram Chat ID. Example: `/add-admin 123456789` |
+
+> **Tip:** If you are not yet whitelisted, send any message to the bot — it will reply with your Chat ID, which you can then use with `/auth` or share with an admin.
 
 ---
 
@@ -124,10 +140,14 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Створіть файл `.env`:**
     - Створіть файл з назвою `.env` в корені проекту.
-    - Додайте до нього токен вашого бота:
+    - Додайте до нього токен бота та ключі автентифікації:
         ```
         BOT_TOKEN=ВАШ_ТЕЛЕГРАМ_БОТ_ТОКЕН
+        SECRET_KEY=ВАШ_СЕКРЕТНИЙ_КЛЮЧ_АДМІНА
+        COMMON_KEY=ВАШ_СЕКРЕТНИЙ_КЛЮЧ_КОРИСТУВАЧА
         ```
+    - `SECRET_KEY` — ключ, що надає права **адміна** при використанні з `/auth`.
+    - `COMMON_KEY` — ключ, що надає права звичайного **користувача** при використанні з `/auth`.
 
 6. **Налаштуйте "білий список":**
     - Створіть файл з назвою `whitelist.txt` в корені проекту.
@@ -152,6 +172,18 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 3. **Отримайте відео:**
     - Бот обробить посилання, завантажить відео та надішле його вам у чат.
+
+### 🔑 Команди
+
+| Команда | Доступ | Опис |
+|---------|--------|------|
+| `/start` | Усі | Запустити бота та отримати привітальне повідомлення. |
+| `/status` | Авторизовані користувачі | Перевірити, чи запущений бот. |
+| `/auth [ключ]` | Усі | Автентифікуватись. Використовуйте `SECRET_KEY`, щоб стати **адміном**, або `COMMON_KEY`, щоб стати звичайним **користувачем**. Приклад: `/auth mysecretkey` |
+| `/add-user [user_id]` | Тільки адміни | Додати користувача до білого списку за його Telegram Chat ID. Приклад: `/add-user 123456789` |
+| `/add-admin [user_id]` | Тільки адміни | Надати права адміна користувачу за його Telegram Chat ID. Приклад: `/add-admin 123456789` |
+
+> **Підказка:** Якщо вас ще немає в білому списку, надішліть будь-яке повідомлення боту — він відповість вашим Chat ID, який ви зможете використати з `/auth` або передати адміну.
 
 ---
 
@@ -199,10 +231,14 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Создайте файл `.env`:**
     - Создайте файл с названием `.env` в корне проекта.
-    - Добавьте в него токен вашего бота:
+    - Добавьте в него токен бота и ключи аутентификации:
         ```
         BOT_TOKEN=ВАШ_ТЕЛЕГРАМ_БОТ_ТОКЕН
+        SECRET_KEY=ВАШ_СЕКРЕТНЫЙ_КЛЮЧ_АДМИНА
+        COMMON_KEY=ВАШ_СЕКРЕТНЫЙ_КЛЮЧ_ПОЛЬЗОВАТЕЛЯ
         ```
+    - `SECRET_KEY` — ключ, который даёт права **администратора** при использовании с `/auth`.
+    - `COMMON_KEY` — ключ, который даёт права обычного **пользователя** при использовании с `/auth`.
 
 6. **Настройте "белый список":**
     - Создайте файл с названием `whitelist.txt` в корне проекта.
@@ -227,3 +263,15 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 3. **Получите видео:**
     - Бот обработает ссылку, скачает видео и отправит его вам в чат.
+
+### 🔑 Команды
+
+| Команда | Доступ | Описание |
+|---------|--------|----------|
+| `/start` | Все | Запустить бота и получить приветственное сообщение. |
+| `/status` | Авторизованные пользователи | Проверить, работает ли бот. |
+| `/auth [ключ]` | Все | Аутентифицироваться. Используйте `SECRET_KEY`, чтобы стать **администратором**, или `COMMON_KEY`, чтобы стать обычным **пользователем**. Пример: `/auth mysecretkey` |
+| `/add-user [user_id]` | Только администраторы | Добавить пользователя в белый список по его Telegram Chat ID. Пример: `/add-user 123456789` |
+| `/add-admin [user_id]` | Только администраторы | Выдать права администратора пользователю по его Telegram Chat ID. Пример: `/add-admin 123456789` |
+
+> **Подсказка:** Если вас ещё нет в белом списке, отправьте боту любое сообщение — он ответит вашим Chat ID, который можно использовать с `/auth` или передать администратору.
