@@ -94,6 +94,13 @@ def add_to_admins(user_id: int):
         ADMIN_IDS.append(user_id)
         save_admins()
 
+def format_id_section(title: str, user_ids: list[int]) -> str:
+    """Formats a section of user IDs for bot responses."""
+    if not user_ids:
+        return f"{title}:\n- None"
+    formatted_ids = "\n".join(f"- {user_id}" for user_id in sorted(user_ids))
+    return f"{title}:\n{formatted_ids}"
+
 # Load the whitelist and admins on startup
 load_whitelist()
 load_admins()
@@ -275,6 +282,31 @@ async def handle_youtube(message: types.Message, bot: Bot):
 async def send_welcome(message: types.Message):
     await message.reply("Hello! I am bot radym. Send me a link to download a video.")
 
+# Handler for /help command
+@dp.message(Command(commands=["help"]))
+async def send_help(message: types.Message):
+    help_text = (
+        "📖 <b>Available Commands</b>\n\n"
+        "<code>/start</code> — Welcome message\n"
+        "<code>/help</code> — Show this help message\n"
+        "<code>/status</code> — Check if the bot is running\n"
+        "<code>/auth [key]</code> — Authenticate yourself with a key to gain access.\n"
+        "  • Use the <b>admin key</b> to get admin privileges.\n"
+        "  • Use the <b>user key</b> to get standard access.\n\n"
+        "🔐 <b>Admin-only Commands</b>\n\n"
+        "<code>/add-admin [user_id]</code> — Grant admin rights to a user by their Telegram user ID\n"
+        "<code>/add-user [user_id]</code> — Add a user to the whitelist by their Telegram user ID\n"
+        "<code>/list</code> — Show all admins and whitelisted users\n\n"
+        "🎬 <b>Downloading Media</b>\n\n"
+        "Simply send a link from one of the supported platforms and the bot will download and send the media to you:\n"
+        "• <b>TikTok</b> — videos and photo slideshows (with audio)\n"
+        "• <b>Instagram</b> — videos\n"
+        "• <b>YouTube</b> — videos (up to 1080p)\n"
+        "• <b>Facebook</b> — videos\n\n"
+        "ℹ️ If you are not authenticated, send any message to get your Chat ID, then use <code>/auth [key]</code> to gain access."
+    )
+    await message.reply(help_text, parse_mode="HTML")
+
 # Handler for /status command
 @dp.message(Command(commands=["status"]))
 async def send_status(message: types.Message):
@@ -335,7 +367,7 @@ async def add_admin_command(message: types.Message):
         await message.reply(f"✅ User {new_admin_id} has been added as ADMIN!")
     except Exception as e:
         logging.error(f"Error in add-admin command: {e}")
-        await message.reply(f"❌ An error occurred: {e}")
+        await message.reply("❌ An internal error occurred while adding the admin.")
 
 # Handler for /add-user command (only for admins)
 @dp.message(Command(commands=["add-user"]))
@@ -363,7 +395,28 @@ async def add_user_command(message: types.Message):
         await message.reply(f"✅ User {new_user_id} has been added to whitelist!")
     except Exception as e:
         logging.error(f"Error in add-user command: {e}")
-        await message.reply(f"❌ An error occurred: {e}")
+        await message.reply("❌ An internal error occurred while adding the user.")
+
+# Handler for /list command (only for admins)
+@dp.message(Command(commands=["list"]))
+async def list_users_command(message: types.Message):
+    try:
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ This command is only for admins.")
+            return
+
+        admin_ids_set = set(ADMIN_IDS)
+        whitelist_ids = set(WHITELISTED_CHAT_IDS)
+        regular_user_ids = [user_id for user_id in whitelist_ids if user_id not in admin_ids_set]
+        response_text = (
+            "👥 Access list\n\n"
+            f"{format_id_section('Admins', list(admin_ids_set))}\n\n"
+            f"{format_id_section('Whitelisted users', regular_user_ids)}"
+        )
+        await message.reply(response_text)
+    except Exception as e:
+        logging.error(f"Error in list command: {e}")
+        await message.reply("❌ An internal error occurred while loading the access list.")
 
 # Handler for messages containing links
 @dp.message()
