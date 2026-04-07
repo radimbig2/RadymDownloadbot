@@ -16,9 +16,7 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 - 🔒 **Whitelist System**: Only users whose Chat IDs are in `whitelist.txt` can use the bot.
 - 🚀 **Easy to Use**: Just send a link, and the bot does the rest.
 - ⚙️ **Easy to Deploy**: A few simple steps to get your bot up and running.
-
-## TODO
-- Add current group chat command if you are admin
+- 🛠  **Command to manipulate whitelist** /add-user /add-admin /auth use commands to modify whitelist while running 
 
 ### 🛠️ Local Installation and Setup
 
