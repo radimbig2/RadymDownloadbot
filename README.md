@@ -91,6 +91,7 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 | `/auth [key]` | Everyone | Authenticate yourself. Use `SECRET_KEY` to become an **admin**, or `COMMON_KEY` to become a regular **user**. Example: `/auth mysecretkey` |
 | `/add-user [user_id]` | Admins only | Add a user to the whitelist by their Telegram Chat ID. Example: `/add-user 123456789` |
 | `/add-admin [user_id]` | Admins only | Promote a user to admin by their Telegram Chat ID. Example: `/add-admin 123456789` |
+| `/list` | Admins only | List all admins and whitelisted users currently stored by the bot. |
 
 > **Tip:** If you are not yet whitelisted, send any message to the bot — it will reply with your Chat ID, which you can then use with `/auth` or share with an admin.
 
@@ -182,6 +183,7 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 | `/auth [ключ]` | Усі | Автентифікуватись. Використовуйте `SECRET_KEY`, щоб стати **адміном**, або `COMMON_KEY`, щоб стати звичайним **користувачем**. Приклад: `/auth mysecretkey` |
 | `/add-user [user_id]` | Тільки адміни | Додати користувача до білого списку за його Telegram Chat ID. Приклад: `/add-user 123456789` |
 | `/add-admin [user_id]` | Тільки адміни | Надати права адміна користувачу за його Telegram Chat ID. Приклад: `/add-admin 123456789` |
+| `/list` | Тільки адміни | Показати всіх адміністраторів і користувачів у білому списку. |
 
 > **Підказка:** Якщо вас ще немає в білому списку, надішліть будь-яке повідомлення боту — він відповість вашим Chat ID, який ви зможете використати з `/auth` або передати адміну.
 
@@ -273,5 +275,6 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 | `/auth [ключ]` | Все | Аутентифицироваться. Используйте `SECRET_KEY`, чтобы стать **администратором**, или `COMMON_KEY`, чтобы стать обычным **пользователем**. Пример: `/auth mysecretkey` |
 | `/add-user [user_id]` | Только администраторы | Добавить пользователя в белый список по его Telegram Chat ID. Пример: `/add-user 123456789` |
 | `/add-admin [user_id]` | Только администраторы | Выдать права администратора пользователю по его Telegram Chat ID. Пример: `/add-admin 123456789` |
+| `/list` | Только администраторы | Показать всех администраторов и пользователей из белого списка. |
 
 > **Подсказка:** Если вас ещё нет в белом списке, отправьте боту любое сообщение — он ответит вашим Chat ID, который можно использовать с `/auth` или передать администратору.

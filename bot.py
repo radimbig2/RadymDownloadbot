@@ -94,6 +94,13 @@ def add_to_admins(user_id: int):
         ADMIN_IDS.append(user_id)
         save_admins()
 
+def format_id_section(title: str, user_ids: list[int]) -> str:
+    """Formats a section of user IDs for bot responses."""
+    if not user_ids:
+        return f"{title}:\n- None"
+    formatted_ids = "\n".join(f"- {user_id}" for user_id in sorted(user_ids))
+    return f"{title}:\n{formatted_ids}"
+
 # Load the whitelist and admins on startup
 load_whitelist()
 load_admins()
@@ -289,6 +296,7 @@ async def send_help(message: types.Message):
         "🔐 *Admin\\-only Commands*\n\n"
         "*/add\\-admin \\[user\\_id\\]* — Grant admin rights to a user by their Telegram user ID\n"
         "*/add\\-user \\[user\\_id\\]* — Add a user to the whitelist by their Telegram user ID\n\n"
+        "*/list* — Show all admins and whitelisted users\n\n"
         "🎬 *Downloading Media*\n\n"
         "Simply send a link from one of the supported platforms and the bot will download and send the media to you:\n"
         "• *TikTok* — videos and photo slideshows \\(with audio\\)\n"
@@ -387,6 +395,26 @@ async def add_user_command(message: types.Message):
         await message.reply(f"✅ User {new_user_id} has been added to whitelist!")
     except Exception as e:
         logging.error(f"Error in add-user command: {e}")
+        await message.reply(f"❌ An error occurred: {e}")
+
+# Handler for /list command (only for admins)
+@dp.message(Command(commands=["list"]))
+async def list_users_command(message: types.Message):
+    try:
+        if message.from_user.id not in ADMIN_IDS:
+            await message.reply("❌ This command is only for admins.")
+            return
+
+        admin_ids = sorted(set(ADMIN_IDS))
+        user_ids = sorted(set(WHITELISTED_CHAT_IDS) - set(admin_ids))
+        response_text = (
+            "👥 Access list\n\n"
+            f"{format_id_section('Admins', admin_ids)}\n\n"
+            f"{format_id_section('Users', user_ids)}"
+        )
+        await message.reply(response_text)
+    except Exception as e:
+        logging.error(f"Error in list command: {e}")
         await message.reply(f"❌ An error occurred: {e}")
 
 # Handler for messages containing links
