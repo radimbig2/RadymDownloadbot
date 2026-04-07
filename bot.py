@@ -286,26 +286,26 @@ async def send_welcome(message: types.Message):
 @dp.message(Command(commands=["help"]))
 async def send_help(message: types.Message):
     help_text = (
-        "📖 *Available Commands*\n\n"
-        "*/start* — Welcome message\n"
-        "*/help* — Show this help message\n"
-        "*/status* — Check if the bot is running\n"
-        "*/auth \\[key\\]* — Authenticate yourself with a key to gain access\\.\n"
-        "  • Use the *admin key* to get admin privileges\\.\n"
-        "  • Use the *user key* to get standard access\\.\n\n"
-        "🔐 *Admin\\-only Commands*\n\n"
-        "*/add\\-admin \\[user\\_id\\]* — Grant admin rights to a user by their Telegram user ID\n"
-        "*/add\\-user \\[user\\_id\\]* — Add a user to the whitelist by their Telegram user ID\n"
-        "*/list* — Show all admins and whitelisted users\n\n"
-        "🎬 *Downloading Media*\n\n"
+        "📖 <b>Available Commands</b>\n\n"
+        "<code>/start</code> — Welcome message\n"
+        "<code>/help</code> — Show this help message\n"
+        "<code>/status</code> — Check if the bot is running\n"
+        "<code>/auth [key]</code> — Authenticate yourself with a key to gain access.\n"
+        "  • Use the <b>admin key</b> to get admin privileges.\n"
+        "  • Use the <b>user key</b> to get standard access.\n\n"
+        "🔐 <b>Admin-only Commands</b>\n\n"
+        "<code>/add-admin [user_id]</code> — Grant admin rights to a user by their Telegram user ID\n"
+        "<code>/add-user [user_id]</code> — Add a user to the whitelist by their Telegram user ID\n"
+        "<code>/list</code> — Show all admins and whitelisted users\n\n"
+        "🎬 <b>Downloading Media</b>\n\n"
         "Simply send a link from one of the supported platforms and the bot will download and send the media to you:\n"
-        "• *TikTok* — videos and photo slideshows \\(with audio\\)\n"
-        "• *Instagram* — videos\n"
-        "• *YouTube* — videos \\(up to 1080p\\)\n"
-        "• *Facebook* — videos\n\n"
-        "ℹ️ If you are not authenticated, send any message to get your Chat ID, then use */auth \\[key\\]* to gain access\\."
+        "• <b>TikTok</b> — videos and photo slideshows (with audio)\n"
+        "• <b>Instagram</b> — videos\n"
+        "• <b>YouTube</b> — videos (up to 1080p)\n"
+        "• <b>Facebook</b> — videos\n\n"
+        "ℹ️ If you are not authenticated, send any message to get your Chat ID, then use <code>/auth [key]</code> to gain access."
     )
-    await message.reply(help_text, parse_mode="MarkdownV2")
+    await message.reply(help_text, parse_mode="HTML")
 
 # Handler for /status command
 @dp.message(Command(commands=["status"]))
@@ -406,11 +406,12 @@ async def list_users_command(message: types.Message):
             return
 
         admin_ids = sorted(set(ADMIN_IDS))
-        user_ids = sorted(set(WHITELISTED_CHAT_IDS) - set(admin_ids))
+        whitelist_ids = sorted(set(WHITELISTED_CHAT_IDS))
+        user_ids = [user_id for user_id in whitelist_ids if user_id not in admin_ids]
         response_text = (
             "👥 Access list\n\n"
             f"{format_id_section('Admins', admin_ids)}\n\n"
-            f"{format_id_section('Users', user_ids)}"
+            f"{format_id_section('Whitelisted users', user_ids)}"
         )
         await message.reply(response_text)
     except Exception as e:
