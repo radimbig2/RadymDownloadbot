@@ -52,6 +52,15 @@ def get_int_env(var_name: str, default: int) -> int:
         return default
 
 
+def mask_secret(value: str | None, visible_chars: int = 6) -> str:
+    """Returns a short masked preview of a secret for safe logging."""
+    if not value:
+        return "missing"
+    if len(value) <= visible_chars * 2:
+        return value
+    return f"{value[:visible_chars]}...{value[-visible_chars:]}"
+
+
 YTDLP_COOKIES = os.getenv("YTDLP_COOKIES")
 YTDLP_COOKIES_BASE64 = os.getenv("YTDLP_COOKIES_BASE64")
 YTDLP_IMPERSONATE = os.getenv("YTDLP_IMPERSONATE")
@@ -59,6 +68,13 @@ YTDLP_SLEEP_REQUESTS = get_float_env("YTDLP_SLEEP_REQUESTS", 1.0)
 YTDLP_SLEEP_INTERVAL = get_float_env("YTDLP_SLEEP_INTERVAL", 2.0)
 YTDLP_MAX_SLEEP_INTERVAL = get_float_env("YTDLP_MAX_SLEEP_INTERVAL", 5.0)
 YOUTUBE_MAX_DURATION_SECONDS = get_int_env("YOUTUBE_MAX_DURATION_SECONDS", 300)
+
+logging.info(
+    "YTDLP_COOKIES_BASE64 status: present=%s length=%s preview=%s",
+    bool(YTDLP_COOKIES_BASE64),
+    len(YTDLP_COOKIES_BASE64) if YTDLP_COOKIES_BASE64 else 0,
+    mask_secret(YTDLP_COOKIES_BASE64),
+)
 
 # --- Whitelist and Admin Configuration ---
 WHITELIST_FILE = os.path.join(BASE_DIR, 'whitelist.txt')
