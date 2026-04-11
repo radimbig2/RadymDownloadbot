@@ -3,3 +3,4 @@ whitelist.txt
 admins.txt
 __pycache__/
 *.py[cod]
+cookies.txt

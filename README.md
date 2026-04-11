@@ -49,11 +49,20 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Create the `.env` file:**
     - Create a file named `.env` in the root of the project.
+    - The fastest option is to copy `.env.example` to `.env` and replace the placeholder values.
     - Add your bot token and authentication keys to it:
         ```
         BOT_TOKEN=YOUR_TELEGRAM_BOT_TOKEN
         SECRET_KEY=YOUR_ADMIN_SECRET_KEY
         COMMON_KEY=YOUR_USER_SECRET_KEY
+
+        # Optional: YouTube authentication via env secret
+        # Recommended for hosting/container deployments
+        YTDLP_COOKIES_BASE64=PASTE_BASE64_NETSCAPE_COOKIES_HERE
+
+        # Optional: YouTube max duration in seconds
+        # Default is 300 seconds (5 minutes)
+        YOUTUBE_MAX_DURATION_SECONDS=300
         ```
     - `SECRET_KEY` — the key that grants **admin** access when used with `/auth`.
     - `COMMON_KEY` — the key that grants regular **user** access when used with `/auth`.
@@ -70,6 +79,38 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
     ```bash
     python bot.py
     ```
+
+### 🔐 YouTube Authentication
+
+If YouTube replies with `Sign in to confirm you’re not a bot`, provide YouTube cookies through environment variables only.
+
+Recommended `.env` setup:
+
+```env
+YTDLP_COOKIES_BASE64=PASTE_BASE64_NETSCAPE_COOKIES_HERE
+```
+
+Flow:
+
+1. Export YouTube cookies on your own PC from the dedicated Google account in Netscape format.
+2. Convert that cookies text to base64.
+3. Put the result into `YTDLP_COOKIES_BASE64` in your hosting or container environment.
+4. Restart the bot.
+
+Helper script:
+
+```bash
+python encode_cookies_env.py cookies.txt
+```
+
+The script prints a ready-to-paste line like `YTDLP_COOKIES_BASE64=...`.
+
+Notes:
+
+- A separate Google account is recommended instead of your main one.
+- The bot no longer reads cookies from the local browser profile.
+- `YTDLP_COOKIES_BASE64` is recommended for hosting panels because it avoids multiline formatting issues.
+- If your platform supports multiline env values, you can use raw Netscape cookies in `YTDLP_COOKIES` instead.
 
 ### 🤖 How to Use
 
@@ -141,11 +182,19 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Створіть файл `.env`:**
     - Створіть файл з назвою `.env` в корені проекту.
+    - Найзручніше скопіювати `.env.example` у `.env` і замінити значення-заповнювачі.
     - Додайте до нього токен бота та ключі автентифікації:
         ```
         BOT_TOKEN=ВАШ_ТЕЛЕГРАМ_БОТ_ТОКЕН
         SECRET_KEY=ВАШ_СЕКРЕТНИЙ_КЛЮЧ_АДМІНА
         COMMON_KEY=ВАШ_СЕКРЕТНИЙ_КЛЮЧ_КОРИСТУВАЧА
+
+        # Опціонально: авторизація для YouTube через env-секрет
+        YTDLP_COOKIES_BASE64=ВСТАВТЕ_BASE64_NETSCAPE_COOKIES
+
+        # Опціонально: максимальна тривалість YouTube у секундах
+        # За замовчуванням 300 секунд (5 хвилин)
+        YOUTUBE_MAX_DURATION_SECONDS=300
         ```
     - `SECRET_KEY` — ключ, що надає права **адміна** при використанні з `/auth`.
     - `COMMON_KEY` — ключ, що надає права звичайного **користувача** при використанні з `/auth`.
@@ -162,6 +211,37 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
     ```bash
     python bot.py
     ```
+
+### 🔐 Авторизація YouTube
+
+Якщо YouTube повертає `Sign in to confirm you’re not a bot`, передайте cookies для YouTube тільки через змінні середовища.
+
+Рекомендоване налаштування `.env`:
+
+```env
+YTDLP_COOKIES_BASE64=ВСТАВТЕ_BASE64_NETSCAPE_COOKIES
+```
+
+Кроки:
+
+1. Експортуйте YouTube cookies на своєму ПК з виділеного Google-акаунта у форматі Netscape.
+2. Закодуйте цей текст у base64.
+3. Додайте результат у `YTDLP_COOKIES_BASE64` на хостингу або в контейнері.
+4. Перезапустіть бота.
+
+Допоміжний скрипт:
+
+```bash
+python encode_cookies_env.py cookies.txt
+```
+
+Скрипт виведе готовий рядок виду `YTDLP_COOKIES_BASE64=...` для вставки в env.
+
+Примітки:
+
+- Бот більше не читає cookies з локального профілю браузера.
+- Для панелей хостингу `YTDLP_COOKIES_BASE64` зручніший, бо не ламається на переносах рядків.
+- Якщо ваш env підтримує багаторядкові значення, можна використати `YTDLP_COOKIES` з сирим Netscape-текстом.
 
 ### 🤖 Як користуватися
 
@@ -233,14 +313,55 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
 
 5. **Создайте файл `.env`:**
     - Создайте файл с названием `.env` в корне проекта.
+    - Быстрее всего скопировать `.env.example` в `.env` и заменить значения-заглушки.
     - Добавьте в него токен бота и ключи аутентификации:
         ```
         BOT_TOKEN=ВАШ_ТЕЛЕГРАМ_БОТ_ТОКЕН
         SECRET_KEY=ВАШ_СЕКРЕТНЫЙ_КЛЮЧ_АДМИНА
         COMMON_KEY=ВАШ_СЕКРЕТНЫЙ_КЛЮЧ_ПОЛЬЗОВАТЕЛЯ
+
+        # Необязательно: авторизация для YouTube через env-секрет
+        YTDLP_COOKIES_BASE64=ВСТАВЬТЕ_BASE64_NETSCAPE_COOKIES
+
+        # Необязательно: максимальная длина YouTube в секундах
+        # По умолчанию 300 секунд (5 минут)
+        YOUTUBE_MAX_DURATION_SECONDS=300
         ```
     - `SECRET_KEY` — ключ, который даёт права **администратора** при использовании с `/auth`.
     - `COMMON_KEY` — ключ, который даёт права обычного **пользователя** при использовании с `/auth`.
+
+### 🔐 Авторизация YouTube
+
+Если YouTube отвечает `Sign in to confirm you’re not a bot`, нужно дать `yt-dlp` cookies от Google-аккаунта.
+
+Поддерживается только передача cookies через env.
+
+Рекомендуемая настройка `.env`:
+
+```env
+YTDLP_COOKIES_BASE64=ВСТАВЬТЕ_BASE64_NETSCAPE_COOKIES
+```
+
+Порядок действий:
+
+1. На своем ПК экспортируйте YouTube cookies нужного Google-аккаунта в формате Netscape.
+2. Закодируйте этот текст в base64.
+3. Добавьте результат в переменную окружения `YTDLP_COOKIES_BASE64` на хостинге.
+4. Перезапустите бота.
+
+Вспомогательный скрипт:
+
+```bash
+python encode_cookies_env.py cookies.txt
+```
+
+Скрипт выведет готовую строку вида `YTDLP_COOKIES_BASE64=...`, которую можно вставить в env.
+
+Замечания:
+
+- Лучше использовать отдельный Google-аккаунт, а не основной.
+- Чтение cookies из локального браузера удалено.
+- Если хостинг поддерживает многострочные env-переменные, можно использовать `YTDLP_COOKIES` с сырым Netscape-текстом вместо base64.
 
 6. **Настройте "белый список":**
     - Создайте файл с названием `whitelist.txt` в корне проекта.

@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import io
 import logging
 import os
 import uuid
@@ -18,15 +20,49 @@ logging.basicConfig(level=logging.INFO)
 
 # Load environment variables from .env file
 load_dotenv()
+BASE_DIR = os.path.dirname(__file__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SECRET_KEY = os.getenv("SECRET_KEY")
 COMMON_KEY = os.getenv("COMMON_KEY")
-TEMP_DIRECTORY = os.path.join(os.path.dirname(__file__), 'temp_videos')
+TEMP_DIRECTORY = os.path.join(BASE_DIR, 'temp_videos')
 os.makedirs(TEMP_DIRECTORY, exist_ok=True)
 
+
+def get_float_env(var_name: str, default: float | None = None) -> float | None:
+    """Reads a float from environment variables and falls back to default on invalid values."""
+    raw_value = os.getenv(var_name)
+    if raw_value in (None, ''):
+        return default
+    try:
+        return float(raw_value)
+    except ValueError:
+        logging.warning("Invalid float value for %s: %s", var_name, raw_value)
+        return default
+
+
+def get_int_env(var_name: str, default: int) -> int:
+    """Reads an integer from environment variables and falls back to default on invalid values."""
+    raw_value = os.getenv(var_name)
+    if raw_value in (None, ''):
+        return default
+    try:
+        return int(raw_value)
+    except ValueError:
+        logging.warning("Invalid integer value for %s: %s", var_name, raw_value)
+        return default
+
+
+YTDLP_COOKIES = os.getenv("YTDLP_COOKIES")
+YTDLP_COOKIES_BASE64 = os.getenv("YTDLP_COOKIES_BASE64")
+YTDLP_IMPERSONATE = os.getenv("YTDLP_IMPERSONATE")
+YTDLP_SLEEP_REQUESTS = get_float_env("YTDLP_SLEEP_REQUESTS", 1.0)
+YTDLP_SLEEP_INTERVAL = get_float_env("YTDLP_SLEEP_INTERVAL", 2.0)
+YTDLP_MAX_SLEEP_INTERVAL = get_float_env("YTDLP_MAX_SLEEP_INTERVAL", 5.0)
+YOUTUBE_MAX_DURATION_SECONDS = get_int_env("YOUTUBE_MAX_DURATION_SECONDS", 300)
+
 # --- Whitelist and Admin Configuration ---
-WHITELIST_FILE = os.path.join(os.path.dirname(__file__), 'whitelist.txt')
-ADMINS_FILE = os.path.join(os.path.dirname(__file__), 'admins.txt')
+WHITELIST_FILE = os.path.join(BASE_DIR, 'whitelist.txt')
+ADMINS_FILE = os.path.join(BASE_DIR, 'admins.txt')
 WHITELISTED_CHAT_IDS = []
 ADMIN_IDS = []
 
@@ -134,6 +170,80 @@ PLATFORM_IDENTIFIERS = {
     "youtu.be": "YouTube",
 }
 
+
+def configure_youtube_auth(ytdlp_options: dict):
+    """Adds YouTube authentication and throttling settings to yt-dlp options."""
+    cookie_text = None
+
+    if YTDLP_COOKIES_BASE64:
+        try:
+            cookie_text = base64.b64decode(YTDLP_COOKIES_BASE64).decode('utf-8')
+        except Exception as exc:
+            raise ValueError("Invalid YTDLP_COOKIES_BASE64 value. Expected base64-encoded Netscape cookies.") from exc
+    elif YTDLP_COOKIES:
+        cookie_text = YTDLP_COOKIES
+
+    if cookie_text:
+        normalized_cookie_text = (
+            cookie_text
+            .replace('\r\n', '\n')
+            .replace('\r', '\n')
+            .replace('\\r\\n', '\n')
+            .replace('\\n', '\n')
+            .strip()
+        )
+        ytdlp_options['cookiefile'] = io.StringIO(normalized_cookie_text)
+
+    if YTDLP_IMPERSONATE:
+        ytdlp_options['impersonate'] = YTDLP_IMPERSONATE.strip()
+
+    if YTDLP_SLEEP_REQUESTS is not None:
+        ytdlp_options['sleep_interval_requests'] = YTDLP_SLEEP_REQUESTS
+    if YTDLP_SLEEP_INTERVAL is not None:
+        ytdlp_options['sleep_interval'] = YTDLP_SLEEP_INTERVAL
+    if YTDLP_MAX_SLEEP_INTERVAL is not None:
+        ytdlp_options['max_sleep_interval'] = YTDLP_MAX_SLEEP_INTERVAL
+
+
+def is_youtube_bot_check_error(error: Exception) -> bool:
+    """Detects the common YouTube authentication challenge message from yt-dlp."""
+    error_text = str(error).lower()
+    return (
+        'sign in to confirm you\'re not a bot' in error_text
+        or 'use --cookies-from-browser or --cookies' in error_text
+    )
+
+
+def get_youtube_auth_guidance() -> str:
+    """Returns a concise runtime message for missing or invalid YouTube auth configuration."""
+    return (
+        "❌ YouTube now requires authenticated cookies for this link. "
+        "Add YTDLP_COOKIES_BASE64 or YTDLP_COOKIES to .env, then restart the bot."
+    )
+
+
+def is_youtube_duration_limit_error(error: Exception) -> bool:
+    """Detects yt-dlp rejections caused by the configured YouTube duration limit."""
+    return 'maximum duration' in str(error).lower()
+
+
+def get_youtube_duration_limit_message() -> str:
+    """Returns a user-facing message for YouTube videos that exceed the allowed duration."""
+    if YOUTUBE_MAX_DURATION_SECONDS % 60 == 0:
+        max_minutes = YOUTUBE_MAX_DURATION_SECONDS // 60
+        return f"❌ YouTube videos longer than {max_minutes} minutes are not supported."
+    return f"❌ YouTube videos longer than {YOUTUBE_MAX_DURATION_SECONDS} seconds are not supported."
+
+
+def youtube_duration_filter(info_dict, *, incomplete=False):
+    """Rejects YouTube videos that exceed the configured maximum duration."""
+    duration = info_dict.get('duration')
+    if incomplete or duration is None:
+        return None
+    if duration > YOUTUBE_MAX_DURATION_SECONDS:
+        return f"Maximum duration: {YOUTUBE_MAX_DURATION_SECONDS}"
+    return None
+
 async def download_video(message: types.Message, bot: Bot, platform_name: str):
     """
     Handles video download for a given platform.
@@ -151,8 +261,15 @@ async def download_video(message: types.Message, bot: Bot, platform_name: str):
         }
 
         if platform_name.lower() == 'youtube':
-            ytdlp_options['format'] = 'best[height<=1080][ext=mp4]/best[height<=1080]/best[ext=mp4]/best'
+            ytdlp_options['format'] = (
+                'bv*[height<=1080][ext=mp4]+ba[ext=m4a]'
+                '/bv*[height<=1080]+ba'
+                '/b[height<=1080]'
+                '/bv*+ba/b'
+            )
+            ytdlp_options['match_filter'] = youtube_duration_filter
             ytdlp_options['merge_output_format'] = 'mp4'
+            configure_youtube_auth(ytdlp_options)
 
 
         def run_ytdlp():
@@ -178,7 +295,12 @@ async def download_video(message: types.Message, bot: Bot, platform_name: str):
 
     except Exception as e:
         logging.error(f"Error processing {platform_name} link: {e}")
-        await progress_msg.edit_text(f"❌ An error occurred: {e}")
+        if platform_name.lower() == 'youtube' and is_youtube_bot_check_error(e):
+            await progress_msg.edit_text(get_youtube_auth_guidance())
+        elif platform_name.lower() == 'youtube' and is_youtube_duration_limit_error(e):
+            await progress_msg.edit_text(get_youtube_duration_limit_message())
+        else:
+            await progress_msg.edit_text(f"❌ An error occurred: {e}")
     finally:
         if temp_video_path and os.path.exists(temp_video_path):
             os.remove(temp_video_path)
@@ -447,16 +569,30 @@ async def health_check(request):
 
 async def start_web_server():
     """Start a simple web server for Render.com port binding"""
+    port_value = os.environ.get('PORT')
+    enable_web_server = os.environ.get('ENABLE_WEB_SERVER', '').lower() in {'1', 'true', 'yes'}
+
+    if not port_value and not enable_web_server:
+        logging.info("Skipping web server startup because PORT is not set.")
+        return
+
     app = web.Application()
     app.router.add_get('/', health_check)
     app.router.add_get('/health', health_check)
-    
-    port = int(os.environ.get('PORT', 8080))
+
+    port = int(port_value or 8080)
     runner = web.AppRunner(app)
     await runner.setup()
-    site = web.TCPSite(runner, '0.0.0.0', port)
-    await site.start()
-    logging.info(f"Web server started on port {port}")
+
+    try:
+        site = web.TCPSite(runner, '0.0.0.0', port)
+        await site.start()
+        logging.info(f"Web server started on port {port}")
+    except OSError as exc:
+        await runner.cleanup()
+        if port_value or enable_web_server:
+            raise
+        logging.warning("Could not bind web server on port %s. Continuing without it: %s", port, exc)
 
 async def main():
     # Start web server for Render.com
