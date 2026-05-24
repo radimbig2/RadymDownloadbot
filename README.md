@@ -64,13 +64,7 @@ This is a Telegram bot that allows you to download media from TikTok, Instagram,
         # Default is 300 seconds (5 minutes)
         YOUTUBE_MAX_DURATION_SECONDS=300
 
-        # Optional: X post downloads
-        # X_BEARER_TOKEN takes priority.
-        # X_BEARER_TOKEN=YOUR_X_APP_BEARER_TOKEN
-        # X_CONSUMER_KEY=YOUR_X_APP_CONSUMER_KEY
-        # X_SECRET_KEY=YOUR_X_APP_SECRET_KEY
-        # X_ACCESS_TOKEN=YOUR_X_ACCESS_TOKEN
-        # X_ACCESS_TOKEN_SECRET=YOUR_X_ACCESS_TOKEN_SECRET
+        # X post downloads use snscrape and do not require X API credentials
         ```
     - `SECRET_KEY` — the key that grants **admin** access when used with `/auth`.
     - `COMMON_KEY` — the key that grants regular **user** access when used with `/auth`.
