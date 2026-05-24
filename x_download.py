@@ -1,7 +1,10 @@
+import importlib.machinery
+import importlib.util
 import mimetypes
 import os
 import re
 import shutil
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -15,6 +18,35 @@ class XConfigurationError(XDownloadError):
     pass
 
 
+class _CompatModuleLoader:
+    def __init__(self, spec):
+        self._spec = spec
+
+    def load_module(self, fullname):
+        if fullname in sys.modules:
+            return sys.modules[fullname]
+
+        module = importlib.util.module_from_spec(self._spec)
+        sys.modules[fullname] = module
+        self._spec.loader.exec_module(module)
+        return module
+
+
+def _ensure_snscrape_python313_compatibility():
+    if hasattr(importlib.machinery.FileFinder, 'find_module'):
+        return
+
+    def _find_module(self, fullname, path=None):
+        spec = self.find_spec(fullname)
+        if spec is None or spec.loader is None:
+            return None
+        if hasattr(spec.loader, 'load_module'):
+            return spec.loader
+        return _CompatModuleLoader(spec)
+
+    importlib.machinery.FileFinder.find_module = _find_module
+
+
 def extract_x_post_id(url: str) -> str:
     match = re.search(r"https?://(?:www\.|mobile\.)?(?:x|twitter)\.com/[^/?#]+/status/(\d+)", url)
     if not match:
@@ -22,79 +54,56 @@ def extract_x_post_id(url: str) -> str:
     return match.group(1)
 
 
-def _normalize_sdk_value(value):
-    if value is None or isinstance(value, (str, int, float, bool)):
-        return value
-    if isinstance(value, dict):
-        return {key: _normalize_sdk_value(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_normalize_sdk_value(item) for item in value]
-    if hasattr(value, 'model_dump'):
-        return _normalize_sdk_value(value.model_dump(exclude_none=True))
-    if hasattr(value, 'dict'):
-        return _normalize_sdk_value(value.dict(exclude_none=True))
-    if hasattr(value, '__dict__'):
-        return _normalize_sdk_value(
-            {
-                key: item
-                for key, item in vars(value).items()
-                if not key.startswith('_')
-            }
-        )
-    return value
-
-
-def _create_x_client():
+def _import_snscrape_twitter_module():
+    _ensure_snscrape_python313_compatibility()
     try:
-        from xdk import Client
+        import snscrape.modules.twitter as sntwitter
     except ImportError as error:
-        raise XConfigurationError('The X SDK is not installed. Run pip install -r requirements.txt.') from error
-
-    bearer_token = os.getenv('X_BEARER_TOKEN', '').strip()
-    if bearer_token:
-        return Client(bearer_token=urllib.parse.unquote(bearer_token))
-
-    api_key = os.getenv('X_CONSUMER_KEY', '').strip()
-    api_secret = os.getenv('X_SECRET_KEY', '').strip()
-    access_token = os.getenv('X_ACCESS_TOKEN', '').strip()
-    access_token_secret = os.getenv('X_ACCESS_TOKEN_SECRET', '').strip()
-
-    if api_key and api_secret and access_token and access_token_secret:
-        try:
-            from xdk.oauth1_auth import OAuth1
-        except ImportError as error:
-            raise XConfigurationError('The X SDK OAuth support is not available. Reinstall the xdk package.') from error
-
-        oauth1 = OAuth1(
-            api_key=api_key,
-            api_secret=api_secret,
-            access_token=access_token,
-            access_token_secret=access_token_secret,
-        )
-        return Client(auth=oauth1)
-
-    raise XConfigurationError(
-        'X credentials are missing. Set X_BEARER_TOKEN or the OAuth 1.0a set X_CONSUMER_KEY, X_SECRET_KEY, X_ACCESS_TOKEN, and X_ACCESS_TOKEN_SECRET.'
-    )
+        raise XConfigurationError('snscrape is not installed. Run pip install -r requirements.txt.') from error
+    return sntwitter
 
 
-def _request_x_post(post_id: str) -> dict:
-    client = _create_x_client()
+def _request_x_post(post_url: str):
+    sntwitter = _import_snscrape_twitter_module()
     try:
-        response = client.posts.get_by_id(
-            id=post_id,
-            tweet_fields=['attachments', 'author_id', 'text'],
-            expansions=['attachments.media_keys', 'author_id'],
-            media_fields=['alt_text', 'duration_ms', 'height', 'media_key', 'preview_image_url', 'type', 'url', 'variants', 'width'],
-            user_fields=['name', 'username'],
-        )
+        return next(sntwitter.TwitterTweetScraper(post_url).get_items())
+    except StopIteration as error:
+        raise XDownloadError('Could not fetch the X post.') from error
     except Exception as error:
-        raise XDownloadError(f'X API request failed: {error}') from error
+        raise XDownloadError(f'Failed to fetch the X post: {error}') from error
 
-    payload = _normalize_sdk_value(response)
-    if not isinstance(payload, dict):
-        raise XDownloadError('X SDK returned an unexpected response payload.')
-    return payload
+
+def _get_attr(media, *names):
+    for name in names:
+        if hasattr(media, name):
+            value = getattr(media, name)
+            if value:
+                return value
+    return None
+
+
+def _resolve_variant_url(variants) -> str | None:
+    if not variants:
+        return None
+
+    normalized_variants = []
+    for variant in variants:
+        if isinstance(variant, dict):
+            normalized_variants.append(variant)
+        elif hasattr(variant, '__dict__'):
+            normalized_variants.append(vars(variant))
+
+    direct_mp4 = [
+        variant for variant in normalized_variants
+        if variant.get('url') and str(variant.get('contentType') or variant.get('content_type') or '').lower() == 'video/mp4'
+    ]
+    if direct_mp4:
+        return max(direct_mp4, key=lambda item: item.get('bitrate') or item.get('bit_rate') or 0).get('url')
+
+    for variant in normalized_variants:
+        if variant.get('url'):
+            return variant['url']
+    return None
 
 
 def _resolve_photo_url(url: str) -> str:
@@ -104,30 +113,22 @@ def _resolve_photo_url(url: str) -> str:
     return urllib.parse.urlunparse(parsed._replace(query=urllib.parse.urlencode(query, doseq=True)))
 
 
-def _extract_media_entries(payload: dict) -> list[dict]:
-    data = payload.get('data') or {}
-    includes = payload.get('includes') or {}
-    media_by_key = {media.get('media_key'): media for media in includes.get('media', [])}
-    media_keys = data.get('attachments', {}).get('media_keys', [])
-
+def _extract_media_entries(tweet) -> list[dict]:
     entries = []
-    for media_key in media_keys:
-        media = media_by_key.get(media_key) or {}
-        media_type = media.get('type')
-        if media_type == 'photo' and media.get('url'):
-            entries.append({'media_type': 'photo', 'url': _resolve_photo_url(media['url'])})
+    for media in getattr(tweet, 'media', []) or []:
+        media_class_name = media.__class__.__name__.lower()
+
+        photo_url = _get_attr(media, 'fullUrl', 'url')
+        if 'photo' in media_class_name and photo_url:
+            entries.append({'media_type': 'photo', 'url': _resolve_photo_url(photo_url)})
             continue
 
-        if media_type in {'video', 'animated_gif'}:
-            variants = media.get('variants') or []
-            mp4_variants = [
-                variant for variant in variants
-                if variant.get('content_type') == 'video/mp4' and variant.get('url')
-            ]
-            if not mp4_variants:
-                continue
-            best_variant = max(mp4_variants, key=lambda item: item.get('bit_rate', 0))
-            entries.append({'media_type': 'video', 'url': best_variant['url']})
+        if 'video' in media_class_name or 'gif' in media_class_name:
+            video_url = _resolve_variant_url(_get_attr(media, 'variants'))
+            if not video_url:
+                video_url = _get_attr(media, 'thumbnailUrl', 'url')
+            if video_url:
+                entries.append({'media_type': 'video', 'url': video_url})
 
     return entries
 
@@ -157,28 +158,19 @@ def _download_file(url: str, target_path_without_ext: str) -> str:
 
 
 def download_x_post_assets(post_url: str, temp_directory: str, user_id: int, request_id: str) -> dict:
-    post_id = extract_x_post_id(post_url)
-    payload = _request_x_post(post_id)
-    data = payload.get('data') or {}
-    includes = payload.get('includes') or {}
-    users = includes.get('users') or []
-
-    author_username = None
-    author_id = data.get('author_id')
-    if author_id:
-        for user in users:
-            if user.get('id') == author_id:
-                author_username = user.get('username')
-                break
+    extract_x_post_id(post_url)
+    tweet = _request_x_post(post_url)
+    author = getattr(tweet, 'user', None)
+    author_username = getattr(author, 'username', None)
 
     downloaded_files = []
-    for index, media_entry in enumerate(_extract_media_entries(payload), start=1):
+    for index, media_entry in enumerate(_extract_media_entries(tweet), start=1):
         base_path = os.path.join(temp_directory, f'x_{user_id}_{request_id}_{index}')
         file_path = _download_file(media_entry['url'], base_path)
         downloaded_files.append({'path': file_path, 'media_type': media_entry['media_type']})
 
     return {
-        'text': (data.get('text') or '').strip(),
+        'text': (getattr(tweet, 'content', None) or getattr(tweet, 'rawContent', None) or '').strip(),
         'author_username': author_username,
         'files': downloaded_files,
     }
