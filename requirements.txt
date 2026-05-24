@@ -4,4 +4,4 @@ yt-dlp
 requests
 tiktok-dlpy
 aiohttp
-snscrape
+xdk
