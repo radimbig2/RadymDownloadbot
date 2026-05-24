@@ -8,11 +8,11 @@
 
 ### 📥 RadymDownloadBot 📥
 
-This is a Telegram bot that allows you to download videos from TikTok, Instagram, and YouTube by simply sending a link. The bot is designed with a whitelist system, meaning only authorized users can interact with it.
+This is a Telegram bot that allows you to download media from TikTok, Instagram, YouTube, and X by simply sending a link. The bot is designed with a whitelist system, meaning only authorized users can interact with it.
 
 ### ✨ Features
 
-- 🎬 **Video Downloads**: Download videos from TikTok, Instagram, and YouTube.
+- 🎬 **Media Downloads**: Download videos from TikTok, Instagram, and YouTube, plus photos and videos from X posts.
 - 🔒 **Whitelist System**: Only users whose Chat IDs are in `whitelist.txt` can use the bot.
 - 🚀 **Easy to Use**: Just send a link, and the bot does the rest.
 - ⚙️ **Easy to Deploy**: A few simple steps to get your bot up and running.
@@ -63,6 +63,14 @@ This is a Telegram bot that allows you to download videos from TikTok, Instagram
         # Optional: YouTube max duration in seconds
         # Default is 300 seconds (5 minutes)
         YOUTUBE_MAX_DURATION_SECONDS=300
+
+        # Optional: X post downloads
+        # X_BEARER_TOKEN takes priority.
+        # X_BEARER_TOKEN=YOUR_X_APP_BEARER_TOKEN
+        # X_CONSUMER_KEY=YOUR_X_APP_CONSUMER_KEY
+        # X_SECRET_KEY=YOUR_X_APP_SECRET_KEY
+        # X_ACCESS_TOKEN=YOUR_X_ACCESS_TOKEN
+        # X_ACCESS_TOKEN_SECRET=YOUR_X_ACCESS_TOKEN_SECRET
         ```
     - `SECRET_KEY` — the key that grants **admin** access when used with `/auth`.
     - `COMMON_KEY` — the key that grants regular **user** access when used with `/auth`.
@@ -118,10 +126,10 @@ Notes:
     - Find your bot in Telegram and press "Start".
 
 2. **Send a link:**
-    - Send a link to a video from TikTok, Instagram, or YouTube.
+    - Send a link to media from TikTok, Instagram, YouTube, or X.
 
-3. **Get the video:**
-    - The bot will process the link, download the video, and send it to you in the chat.
+3. **Get the media:**
+    - The bot will process the link, download the media, and send it to you in the chat.
 
 ### 🔑 Commands
 
