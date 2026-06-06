@@ -6,7 +6,7 @@ import uuid
 from aiogram import Bot, types
 from aiogram.types import FSInputFile, InputMediaPhoto, InputMediaVideo
 
-from x_download import XConfigurationError, XDownloadError, download_x_post_assets
+from pinchana_twitter import XConfigurationError, XDownloadError, download_x_post_assets
 
 
 def build_x_caption(author_username: str | None, text: str | None) -> str:

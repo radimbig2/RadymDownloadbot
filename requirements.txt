@@ -4,4 +4,5 @@ yt-dlp
 requests
 tiktok-dlpy
 aiohttp
-xdk
+-e ../pinchana/pinchana-core
+-e ../pinchana/pinchana-twitter
