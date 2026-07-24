@@ -4,4 +4,5 @@ admins.txt
 __pycache__/
 *.py[cod]
 cookies.txt
+.secrets/
 .pytest_tmp/

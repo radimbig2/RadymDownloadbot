@@ -120,6 +120,29 @@ Notes:
 - `YTDLP_COOKIES_BASE64` is recommended for hosting panels because it avoids multiline formatting issues.
 - If your platform supports multiline env values, you can use raw Netscape cookies in `YTDLP_COOKIES` instead.
 
+### 🔐 Instagram Authentication
+
+Instagram may return an empty media response for reels that require a logged-in
+session. Export cookies from a browser where Instagram is logged in, then keep
+them in a separate secret:
+
+```bash
+python encode_cookies_env.py instagram-cookies.txt --var-name INSTAGRAM_COOKIES_BASE64
+```
+
+Add the generated `INSTAGRAM_COOKIES_BASE64=...` line to `.env` or your hosting
+environment and restart the bot. Raw Netscape text can alternatively be supplied
+as `INSTAGRAM_COOKIES`. Use a separate Instagram account because session cookies
+provide account access; never commit or share them.
+
+For local development, keep the exported file under the Git-ignored `.secrets`
+directory and add `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` to
+`.env`.
+
+TikTok login/age-restricted videos use a separate session. Export TikTok cookies
+to `.secrets/tiktok-cookies.txt` and add
+`TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` to `.env`.
+
 ### 🤖 How to Use
 
 1. **Start the bot:**
@@ -251,6 +274,26 @@ python encode_cookies_env.py cookies.txt
 - Для панелей хостингу `YTDLP_COOKIES_BASE64` зручніший, бо не ламається на переносах рядків.
 - Якщо ваш env підтримує багаторядкові значення, можна використати `YTDLP_COOKIES` з сирим Netscape-текстом.
 
+### 🔐 Авторизація Instagram
+
+Для деяких reels Instagram вимагає авторизовану сесію та без неї повертає порожню
+медіавідповідь. Експортуйте cookies з браузера, де виконано вхід в Instagram:
+
+```bash
+python encode_cookies_env.py instagram-cookies.txt --var-name INSTAGRAM_COOKIES_BASE64
+```
+
+Додайте створений рядок `INSTAGRAM_COOKIES_BASE64=...` у `.env` або змінні
+хостингу та перезапустіть бота. Також підтримується сирий Netscape-текст у
+`INSTAGRAM_COOKIES`. Використовуйте окремий Instagram-акаунт і не публікуйте cookies.
+
+Для локальної розробки збережіть файл у виключеній з Git папці `.secrets` і
+додайте `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` у `.env`.
+
+Для TikTok-відео з авторизацією або віковим обмеженням експортуйте окремий файл
+`.secrets/tiktok-cookies.txt` і додайте
+`TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` у `.env`.
+
 ### 🤖 Як користуватися
 
 1. **Запустіть бота:**
@@ -370,6 +413,26 @@ python encode_cookies_env.py cookies.txt
 - Лучше использовать отдельный Google-аккаунт, а не основной.
 - Чтение cookies из локального браузера удалено.
 - Если хостинг поддерживает многострочные env-переменные, можно использовать `YTDLP_COOKIES` с сырым Netscape-текстом вместо base64.
+
+### 🔐 Авторизация Instagram
+
+Для некоторых reels Instagram требует авторизованную сессию и без неё возвращает
+пустой медиаответ. Экспортируйте cookies из браузера, где выполнен вход в Instagram:
+
+```bash
+python encode_cookies_env.py instagram-cookies.txt --var-name INSTAGRAM_COOKIES_BASE64
+```
+
+Добавьте полученную строку `INSTAGRAM_COOKIES_BASE64=...` в `.env` или переменные
+хостинга и перезапустите бота. Также поддерживается сырой Netscape-текст в
+`INSTAGRAM_COOKIES`. Используйте отдельный Instagram-аккаунт и не публикуйте cookies.
+
+Для локальной разработки сохраните файл в исключённой из Git папке `.secrets` и
+добавьте `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` в `.env`.
+
+Для TikTok-видео с авторизацией или возрастным ограничением экспортируйте
+отдельный файл `.secrets/tiktok-cookies.txt` и добавьте
+`TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` в `.env`.
 
 6. **Настройте "белый список":**
     - Создайте файл с названием `whitelist.txt` в корне проекта.

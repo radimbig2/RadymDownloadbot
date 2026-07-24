@@ -7,6 +7,16 @@ import yt_dlp
 from aiogram import Bot, types
 from aiogram.types import FSInputFile
 
+from instagram_config import (
+    configure_instagram_download,
+    get_instagram_auth_guidance,
+    is_instagram_auth_error,
+)
+from tiktok_config import (
+    configure_tiktok_download,
+    get_tiktok_auth_guidance,
+    is_tiktok_auth_error,
+)
 from youtube_config import (
     configure_youtube_download,
     get_youtube_auth_guidance,
@@ -31,6 +41,10 @@ async def download_video(message: types.Message, bot: Bot, temp_directory: str, 
 
         if platform_name.lower() == 'youtube':
             configure_youtube_download(ytdlp_options)
+        elif platform_name.lower() == 'instagram':
+            configure_instagram_download(ytdlp_options)
+        elif platform_name.lower() == 'tiktok':
+            configure_tiktok_download(ytdlp_options)
 
         def run_ytdlp():
             with yt_dlp.YoutubeDL(ytdlp_options) as ydl:
@@ -57,6 +71,10 @@ async def download_video(message: types.Message, bot: Bot, temp_directory: str, 
             await progress_msg.edit_text(get_youtube_auth_guidance())
         elif platform_name.lower() == 'youtube' and is_youtube_duration_limit_error(error):
             await progress_msg.edit_text(get_youtube_duration_limit_message())
+        elif platform_name.lower() == 'instagram' and is_instagram_auth_error(error):
+            await progress_msg.edit_text(get_instagram_auth_guidance())
+        elif platform_name.lower() == 'tiktok' and is_tiktok_auth_error(error):
+            await progress_msg.edit_text(get_tiktok_auth_guidance())
         else:
             await progress_msg.edit_text(f"❌ An error occurred: {error}")
     finally:
