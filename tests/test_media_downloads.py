@@ -7,6 +7,7 @@ import pytest
 import yt_dlp
 
 from pinchana_twitter import download_x_post_assets
+from pinchana_tiktok import download_tiktok_post_assets
 
 
 TIKTOK_URL = "https://www.tiktok.com/@mynameisntsico/video/7627575936950619406"
@@ -41,8 +42,19 @@ def _assert_downloaded_video(path: Path) -> None:
 
 @pytest.mark.media_download
 def test_tiktok_video_downloads(tmp_path: Path) -> None:
-    video_path = _download_with_ytdlp(TIKTOK_URL, tmp_path, "tiktok")
-    _assert_downloaded_video(video_path)
+    result = download_tiktok_post_assets(
+        post_url=TIKTOK_URL,
+        temp_directory=str(tmp_path),
+        user_id=1,
+        request_id=uuid.uuid4().hex[:8],
+    )
+    video_files = [
+        item for item in result.get("files") or []
+        if item.get("media_type") == "video"
+    ]
+    assert video_files, f"No TikTok video media was downloaded. Result: {result}"
+    for item in video_files:
+        _assert_downloaded_video(Path(item["path"]))
 
 
 @pytest.mark.media_download
