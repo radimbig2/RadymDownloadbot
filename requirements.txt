@@ -2,7 +2,7 @@ aiogram
 python-dotenv
 yt-dlp
 requests
-tiktok-dlpy
+radimbig-pinchana-tiktok==1.0.0
 aiohttp
 radimbig-pinchana-core
 radimbig-pinchana-twitter

@@ -10,7 +10,6 @@ from facebook_downloader import handle_facebook
 from instagram_downloader import handle_instagram
 from instagram_config import log_instagram_startup_status
 from tiktok_downloader import handle_tiktok
-from tiktok_config import log_tiktok_startup_status
 from x_downloader import handle_x
 from youtube_config import (
     log_youtube_startup_status,
@@ -30,7 +29,6 @@ TEMP_DIRECTORY = os.path.join(BASE_DIR, 'temp_videos')
 os.makedirs(TEMP_DIRECTORY, exist_ok=True)
 log_youtube_startup_status()
 log_instagram_startup_status()
-log_tiktok_startup_status()
 
 access_control = AccessControl(BASE_DIR)
 access_control.load()

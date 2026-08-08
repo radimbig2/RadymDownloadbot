@@ -139,9 +139,11 @@ For local development, keep the exported file under the Git-ignored `.secrets`
 directory and add `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` to
 `.env`.
 
-TikTok login/age-restricted videos use a separate session. Export TikTok cookies
+TikTok videos, photo slideshows, soundtrack audio, and short links are handled by
+`radimbig-pinchana-tiktok`. Login/age-restricted posts use a separate session. Export TikTok cookies
 to `.secrets/tiktok-cookies.txt` and add
 `TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` to `.env`.
+`TIKTOK_COOKIES_BASE64` and raw `TIKTOK_COOKIES` are also supported, in that priority order.
 
 ### 🤖 How to Use
 
@@ -290,9 +292,11 @@ python encode_cookies_env.py instagram-cookies.txt --var-name INSTAGRAM_COOKIES_
 Для локальної розробки збережіть файл у виключеній з Git папці `.secrets` і
 додайте `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` у `.env`.
 
-Для TikTok-відео з авторизацією або віковим обмеженням експортуйте окремий файл
+TikTok-відео, фотослайдшоу, soundtrack і короткі посилання обробляє
+`radimbig-pinchana-tiktok`. Для дописів з авторизацією або віковим обмеженням експортуйте окремий файл
 `.secrets/tiktok-cookies.txt` і додайте
 `TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` у `.env`.
+Також підтримуються `TIKTOK_COOKIES_BASE64` і сирий `TIKTOK_COOKIES` у такому порядку пріоритету.
 
 ### 🤖 Як користуватися
 
@@ -430,9 +434,11 @@ python encode_cookies_env.py instagram-cookies.txt --var-name INSTAGRAM_COOKIES_
 Для локальной разработки сохраните файл в исключённой из Git папке `.secrets` и
 добавьте `INSTAGRAM_COOKIES_FILE=.secrets/instagram-cookies.txt` в `.env`.
 
-Для TikTok-видео с авторизацией или возрастным ограничением экспортируйте
+TikTok-видео, фотослайдшоу, soundtrack и короткие ссылки обрабатывает
+`radimbig-pinchana-tiktok`. Для постов с авторизацией или возрастным ограничением экспортируйте
 отдельный файл `.secrets/tiktok-cookies.txt` и добавьте
 `TIKTOK_COOKIES_FILE=.secrets/tiktok-cookies.txt` в `.env`.
+Также поддерживаются `TIKTOK_COOKIES_BASE64` и сырой `TIKTOK_COOKIES` в этом порядке приоритета.
 
 6. **Настройте "белый список":**
     - Создайте файл с названием `whitelist.txt` в корне проекта.
