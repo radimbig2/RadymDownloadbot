@@ -19,10 +19,7 @@ from aiogram.types import (
     InlineQueryResultCachedPhoto,
     InlineQueryResultCachedVideo,
 )
-from tiktokdl.download_post import get_post
-
 from instagram_config import configure_instagram_download
-from tiktok_config import configure_tiktok_download
 from youtube_config import configure_youtube_download
 
 
@@ -124,20 +121,6 @@ class InlineMediaService:
         return stored
 
     async def _download(self, url: str, platform: str, user_id: int) -> list[DownloadedMedia]:
-        if platform == "TikTok" and "/photo/" in url:
-            result = await get_post(url)
-            if not result:
-                raise RuntimeError("TikTok did not return slideshow media.")
-            media = [
-                DownloadedMedia("photo", path, "TikTok photo")
-                for path in result.get("images", [])
-                if path
-            ]
-            audio_path = result.get("audio")
-            if audio_path:
-                media.append(DownloadedMedia("audio", audio_path, "TikTok audio"))
-            return media
-
         return await asyncio.to_thread(self._download_sync, url, platform, user_id)
 
     def _download_sync(self, url: str, platform: str, user_id: int) -> list[DownloadedMedia]:
@@ -169,6 +152,20 @@ class InlineMediaService:
                 for item in result.get("files", [])
             ]
 
+        if platform == "TikTok":
+            from pinchana_tiktok import download_tiktok_post_assets
+
+            result = download_tiktok_post_assets(
+                url,
+                str(request_dir),
+                user_id,
+                request_id,
+            )
+            return [
+                DownloadedMedia(item["media_type"], item["path"], "TikTok media")
+                for item in result.get("files", [])
+            ]
+
         output_template = str(request_dir / "media.%(ext)s")
         options = {
             "outtmpl": output_template,
@@ -179,9 +176,6 @@ class InlineMediaService:
             configure_youtube_download(options)
         elif platform == "Instagram":
             configure_instagram_download(options)
-        elif platform == "TikTok":
-            configure_tiktok_download(options)
-
         with yt_dlp.YoutubeDL(options) as ydl:
             ydl.download([url])
 
