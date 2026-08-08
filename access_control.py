@@ -2,15 +2,30 @@ import logging
 import os
 
 
+DEFAULT_WHITELIST_IDS = {-1003440257797}
+
+
 class AccessControl:
-    def __init__(self, base_dir: str):
+    def __init__(
+        self,
+        base_dir: str,
+        default_whitelist_ids: set[int] | None = None,
+    ):
         self.whitelist_file = os.path.join(base_dir, 'whitelist.txt')
         self.admins_file = os.path.join(base_dir, 'admins.txt')
+        self.default_whitelist_ids = (
+            set(DEFAULT_WHITELIST_IDS)
+            if default_whitelist_ids is None
+            else set(default_whitelist_ids)
+        )
         self.whitelisted_chat_ids: list[int] = []
         self.admin_ids: list[int] = []
 
     def load(self):
-        self.whitelisted_chat_ids = self._load_ids(self.whitelist_file, 'Whitelist')
+        loaded_whitelist = self._load_ids(self.whitelist_file, 'Whitelist')
+        self.whitelisted_chat_ids = list(
+            dict.fromkeys([*sorted(self.default_whitelist_ids), *loaded_whitelist])
+        )
         self.admin_ids = self._load_ids(self.admins_file, 'Admins')
 
     def _load_ids(self, file_path: str, label: str) -> list[int]:

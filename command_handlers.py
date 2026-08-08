@@ -2,8 +2,19 @@ import logging
 
 from aiogram import Dispatcher, types
 from aiogram.filters import Command
+from aiogram.enums import ChatType
 
 from access_control import AccessControl, format_id_section
+from inline_mode import extract_supported_url
+
+
+GROUP_CHAT_TYPES = {ChatType.GROUP, ChatType.SUPERGROUP}
+
+
+def should_notify_unauthorized(chat_type: ChatType, text: str | None) -> bool:
+    if chat_type in GROUP_CHAT_TYPES:
+        return extract_supported_url(text or "") is not None
+    return True
 
 
 def register_access_middleware(dp: Dispatcher, access_control: AccessControl):
@@ -13,6 +24,8 @@ def register_access_middleware(dp: Dispatcher, access_control: AccessControl):
             return await handler(event, data)
 
         if not access_control.is_whitelisted(event.chat.id):
+            if not should_notify_unauthorized(event.chat.type, event.text):
+                return
             await event.reply(
                 f"Your Chat ID is: {event.chat.id}\n"
                 "Use /auth [key] to authenticate or ask admin.\n"
