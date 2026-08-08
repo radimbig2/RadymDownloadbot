@@ -53,6 +53,8 @@ def register_commands(
             "• <b>YouTube</b> — videos (up to 1080p)\n"
             "• <b>X</b> — photos and videos from post links\n"
             "• <b>Facebook</b> — videos\n\n"
+            "You can also type <code>@RadimBigTest_bot [link]</code> in any chat to use inline mode.\n"
+            "Inline mode is available to bot admins and whitelisted users.\n\n"
             "ℹ️ If you are not authenticated, send any message to get your Chat ID, then use <code>/auth [key]</code> to gain access."
         )
         await message.reply(help_text, parse_mode="HTML")

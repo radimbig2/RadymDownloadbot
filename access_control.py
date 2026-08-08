@@ -54,6 +54,9 @@ class AccessControl:
     def is_admin(self, user_id: int) -> bool:
         return user_id in self.admin_ids
 
+    def is_allowed_user(self, user_id: int) -> bool:
+        return self.is_admin(user_id) or self.is_whitelisted(user_id)
+
 
 def format_id_section(title: str, user_ids: list[int]) -> str:
     if not user_ids:

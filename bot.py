@@ -16,6 +16,13 @@ from youtube_config import (
     log_youtube_startup_status,
 )
 from youtube_downloader import handle_youtube
+from inline_mode import InlineMediaService, extract_supported_url
+from aiogram.types import (
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InlineQueryResultArticle,
+    InputTextMessageContent,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +33,8 @@ BASE_DIR = os.path.dirname(__file__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 SECRET_KEY = os.getenv("SECRET_KEY")
 COMMON_KEY = os.getenv("COMMON_KEY")
+INLINE_STORAGE_CHAT_ID = os.getenv("INLINE_STORAGE_CHAT_ID", "-1004377346553")
+INLINE_QUERY_WAIT_SECONDS = float(os.getenv("INLINE_QUERY_WAIT_SECONDS", "8"))
 TEMP_DIRECTORY = os.path.join(BASE_DIR, 'temp_videos')
 os.makedirs(TEMP_DIRECTORY, exist_ok=True)
 log_youtube_startup_status()
@@ -42,6 +51,88 @@ dp = Dispatcher()
 
 register_access_middleware(dp, access_control)
 register_commands(dp, access_control, SECRET_KEY, COMMON_KEY)
+
+inline_media_service = None
+if INLINE_STORAGE_CHAT_ID:
+    inline_media_service = InlineMediaService(
+        bot,
+        int(INLINE_STORAGE_CHAT_ID),
+        TEMP_DIRECTORY,
+        INLINE_QUERY_WAIT_SECONDS,
+    )
+
+
+def inline_notice(result_id: str, title: str, message: str, query: str | None = None):
+    keyboard = None
+    if query:
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[[
+                InlineKeyboardButton(
+                    text="🔄 Check again",
+                    switch_inline_query_current_chat=query,
+                )
+            ]]
+        )
+    return InlineQueryResultArticle(
+        id=result_id,
+        title=title,
+        description=message,
+        input_message_content=InputTextMessageContent(message_text=message),
+        reply_markup=keyboard,
+    )
+
+
+@dp.inline_query()
+async def handle_inline_query(inline_query: types.InlineQuery):
+    if not access_control.is_allowed_user(inline_query.from_user.id):
+        await inline_query.answer(
+            [inline_notice("access-denied", "Access denied", "Your Telegram ID is not in the bot whitelist.")],
+            cache_time=0,
+            is_personal=True,
+        )
+        return
+
+    parsed = extract_supported_url(inline_query.query)
+    if not parsed:
+        await inline_query.answer(
+            [inline_notice("send-link", "Send a supported link", "Paste a TikTok, Instagram, YouTube, Facebook, or X link.")],
+            cache_time=0,
+            is_personal=True,
+        )
+        return
+
+    if inline_media_service is None:
+        await inline_query.answer(
+            [inline_notice("not-configured", "Inline mode is not configured", "INLINE_STORAGE_CHAT_ID is missing.")],
+            cache_time=0,
+            is_personal=True,
+        )
+        return
+
+    url, platform = parsed
+    try:
+        status, stored_media = await inline_media_service.get_or_start(
+            url,
+            platform,
+            inline_query.from_user.id,
+        )
+        if status == "ready":
+            results = inline_media_service.build_results(stored_media, url)
+        else:
+            results = [inline_notice(
+                "processing",
+                f"Processing {platform} link…",
+                "The media is still being prepared. Tap Check again in a few seconds.",
+                url,
+            )]
+        await inline_query.answer(results, cache_time=0, is_personal=True)
+    except Exception as error:
+        logging.exception("Inline query processing failed")
+        await inline_query.answer(
+            [inline_notice("processing-error", "Could not process this link", str(error)[:200])],
+            cache_time=0,
+            is_personal=True,
+        )
 
 
 # Dictionary for identifying platform based on URL

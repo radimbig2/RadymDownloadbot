@@ -154,6 +154,26 @@ to `.secrets/tiktok-cookies.txt` and add
 3. **Get the media:**
     - The bot will process the link, download the media, and send it to you in the chat.
 
+### Inline mode
+
+Authorized users can use the bot in chats where it is not a member by typing
+`@RadimBigTest_bot` followed by a supported link. Access is checked against the
+bot's admins and whitelist by Telegram user ID.
+
+1. Enable inline mode with `/setinline` in `@BotFather`.
+2. Create a private storage channel and add the bot as an administrator with
+   permission to post messages.
+3. Configure its ID and optionally the short inline wait time:
+
+    ```env
+    INLINE_STORAGE_CHAT_ID=-1004377346553
+    INLINE_QUERY_WAIT_SECONDS=8
+    ```
+
+The bot uploads prepared media to that private channel and reuses Telegram's
+`file_id` in the inline result. Slow downloads continue in the background; select
+the processing result and use its **Check again** button after a few seconds.
+
 ### 🔑 Commands
 
 | Command | Access | Description |
