@@ -1,6 +1,7 @@
 aiogram
 python-dotenv
-yt-dlp
+# TikTok's web challenge fix landed in yt-dlp 2026.08.19.
+yt-dlp>=2026.8.19
 requests
 radimbig-pinchana-tiktok==1.0.0
 aiohttp

@@ -11,6 +11,10 @@ from pinchana_tiktok import download_tiktok_post_assets
 
 
 TIKTOK_URL = "https://www.tiktok.com/@mynameisntsico/video/7627575936950619406"
+TIKTOK_VIDEO_REGRESSION_URL = (
+    "https://www.tiktok.com/@rswitamfs/video/7675453231446625566?is_from_webapp=1"
+)
+TIKTOK_SLIDESHOW_REGRESSION_URL = "https://vt.tiktok.com/ZSVU7hp7n/"
 INSTAGRAM_URL = "https://www.instagram.com/p/DWnQ17fDuwc/"
 X_URL = "https://x.com/Mericamemed/status/2062957626108084449?s=20"
 
@@ -54,6 +58,40 @@ def test_tiktok_video_downloads(tmp_path: Path) -> None:
     ]
     assert video_files, f"No TikTok video media was downloaded. Result: {result}"
     for item in video_files:
+        _assert_downloaded_video(Path(item["path"]))
+
+
+@pytest.mark.media_download
+def test_tiktok_video_regression_url_downloads(tmp_path: Path) -> None:
+    result = download_tiktok_post_assets(
+        post_url=TIKTOK_VIDEO_REGRESSION_URL,
+        temp_directory=str(tmp_path),
+        user_id=1,
+        request_id=uuid.uuid4().hex[:8],
+    )
+    video_files = [
+        item for item in result.get("files") or []
+        if item.get("media_type") == "video"
+    ]
+    assert video_files, f"No TikTok video media was downloaded. Result: {result}"
+    for item in video_files:
+        _assert_downloaded_video(Path(item["path"]))
+
+
+@pytest.mark.media_download
+def test_tiktok_slideshow_short_url_regression_downloads(tmp_path: Path) -> None:
+    result = download_tiktok_post_assets(
+        post_url=TIKTOK_SLIDESHOW_REGRESSION_URL,
+        temp_directory=str(tmp_path),
+        user_id=1,
+        request_id=uuid.uuid4().hex[:8],
+    )
+    files = result.get("files") or []
+    photos = [item for item in files if item.get("media_type") == "photo"]
+    audio = [item for item in files if item.get("media_type") == "audio"]
+    assert len(photos) == 6, f"Expected six slideshow photos. Result: {result}"
+    assert len(audio) == 1, f"Expected slideshow soundtrack. Result: {result}"
+    for item in files:
         _assert_downloaded_video(Path(item["path"]))
 
 
